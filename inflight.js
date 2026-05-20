@@ -15,10 +15,18 @@ function inflight (key, cb) {
 }
 
 function makeres (key) {
+  var depth = 0
   return once(function RES () {
     var cbs = reqs[key]
     var len = cbs.length
     var args = slice(arguments)
+
+    // Prevent infinite recursion from callbacks that keep adding
+    // new inflight entries for the same key (DoS / memory leak).
+    if (++depth > 1000) {
+      delete reqs[key]
+      return
+    }
 
     // XXX It's somewhat ambiguous whether a new callback added in this
     // pass should be queued for later execution if something in the
